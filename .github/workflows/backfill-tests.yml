@@ -64,6 +64,11 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Without this the action mints a GitHub App token through OIDC, which
+          # needs `id-token: write` and carries the app's own permissions. The
+          # workflow token is narrower: it is scoped to this job's declared
+          # permissions and expires when the job ends.
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           claude_args: --agent test-author --max-turns 60
           prompt: |
             Add the unit tests this repository is missing. There is no pull request

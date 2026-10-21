@@ -115,6 +115,7 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: write
+      pull-requests: read
     outputs:
       committed: ${{ steps.commit.outputs.committed }}
       head_sha: ${{ steps.commit.outputs.head_sha }}
@@ -181,6 +182,11 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Without this the action mints a GitHub App token through OIDC, which
+          # needs `id-token: write` and carries the app's own permissions. The
+          # workflow token is narrower: it is scoped to this job's declared
+          # permissions and expires when the job ends.
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           claude_args: --agent test-author --max-turns 40
           prompt: |
             You are running in GitHub Actions for pull request #${{ github.event.pull_request.number }}
