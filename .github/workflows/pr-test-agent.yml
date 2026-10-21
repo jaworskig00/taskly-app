@@ -99,6 +99,7 @@ jobs:
             echo "Running against $count changed application file(s):"
             echo ""
             printf '%s\n' "$changed" | while IFS= read -r file; do
+              # shellcheck disable=SC2016  # the backticks are Markdown, not a subshell
               printf -- '- `%s`\n' "$file"
             done
           } >> "$GITHUB_STEP_SUMMARY"

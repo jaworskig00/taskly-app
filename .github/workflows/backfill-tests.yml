@@ -1,0 +1,139 @@
+name: Backfill tests
+
+# The same agent and the same skills as the pull request workflow, pointed at
+# code that was already missing tests before any of this existed. Run it by hand
+# from the Actions tab; it opens a pull request rather than pushing to main.
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: Which side to work on
+        type: choice
+        default: both
+        options: [both, frontend, backend]
+      max_files:
+        description: How many source files to cover in one run
+        default: '6'
+
+permissions: {}
+
+concurrency:
+  group: backfill-tests
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    name: write missing tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          (cd frontend && npm ci)
+          (cd backend && python -m pip install -r requirements.txt)
+
+      - name: Measure coverage before
+        run: |
+          set -euo pipefail
+          mkdir -p .agent-tmp/coverage-before
+          (cd frontend && npm run test:coverage) || true
+          (cd backend && python -m pytest --cov=app --cov-report=json -q) || true
+          cp frontend/coverage/coverage-summary.json .agent-tmp/coverage-before/frontend.json 2>/dev/null || true
+          cp backend/coverage/coverage.json .agent-tmp/coverage-before/backend.json 2>/dev/null || true
+
+      - name: Run the test agent
+        uses: anthropics/claude-code-action@a5a423f75c251dcbff8a74e99f83b2cb03c72bfa # v1.0.256
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: --agent test-author --max-turns 60
+          prompt: |
+            Add the unit tests this repository is missing. There is no pull request
+            here: the coverage reports are the input.
+
+            1. Invoke the `analyze-test-gaps` skill in backfill mode. There is no
+               `.agent-tmp/changed-files.txt`; drive the plan from
+               `.agent-tmp/coverage-before/frontend.json` and
+               `.agent-tmp/coverage-before/backend.json`, lowest coverage first.
+            2. Limit yourself to the ${{ inputs.max_files }} highest-priority source
+               files, on the ${{ inputs.scope }} side.
+            3. Follow `write-frontend-tests` or `write-backend-tests` for each one, and
+               run `verify-tests` after every file.
+            4. Finish with `report-test-results`, writing `.agent-tmp/report.md`.
+
+            Hard constraints:
+
+            - Only `frontend/src/**/*.test.ts`, `frontend/src/**/*.test.tsx`,
+              `frontend/src/test/**`, `backend/tests/**` and `.agent-tmp/**` may change.
+              Anything else is reverted afterwards and reported.
+            - Never change application code, configuration or workflows, not even to make
+              a test pass.
+            - Do not commit, push or open a pull request. The workflow does that.
+
+            Prefer a small number of tests that genuinely pin behaviour over a large
+            number that assert whatever the code happens to do today.
+
+      - name: Enforce the test-only boundary
+        run: .github/scripts/check-test-boundary.sh .agent-tmp/out-of-scope.txt
+
+      - name: Measure coverage after
+        run: |
+          set -euo pipefail
+          mkdir -p .agent-tmp/coverage-after
+          (cd frontend && npm run test:coverage) || true
+          (cd backend && python -m pytest --cov=app --cov-report=json -q) || true
+          cp frontend/coverage/coverage-summary.json .agent-tmp/coverage-after/frontend.json 2>/dev/null || true
+          cp backend/coverage/coverage.json .agent-tmp/coverage-after/backend.json 2>/dev/null || true
+
+      - name: Open a pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name 'taskly-test-agent[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # The boundary guard already reverted anything outside the test paths.
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'The agent produced no test changes.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          branch="test-agent/backfill-${GITHUB_RUN_ID}"
+          git checkout -q -b "$branch"
+          git commit -q -m 'test: backfill unit tests for untested modules [test-agent]'
+          git push -q origin "$branch"
+          body=.agent-tmp/pr-body.md
+          {
+            cat .agent-tmp/report.md 2>/dev/null || echo '### Unit test agent'
+            echo
+            echo "---"
+            echo "Opened by the \`backfill-tests\` workflow. CI verifies these tests independently, in jobs that hold no model credentials."
+          } > "$body"
+          gh pr create --base main --head "$branch" \
+            --title 'test: backfill unit tests for untested modules' \
+            --body-file "$body"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: backfill-run
+          path: .agent-tmp
+          retention-days: 7
