@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Edit(./.github/**)",
+      "Edit(./.claude/**)",
+      "Edit(./backend/app/**)",
+      "Edit(./frontend/src/main.tsx)",
+      "Edit(./frontend/package.json)",
+      "Edit(./frontend/package-lock.json)",
+      "Edit(./frontend/vite.config.ts)",
+      "Edit(./frontend/tsconfig.json)",
+      "Edit(./backend/pyproject.toml)",
+      "Edit(./backend/requirements.in)",
+      "Edit(./backend/requirements.txt)",
+      "Edit(./compose.yaml)",
+      "Edit(./pytest.ini)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(gh:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(npm install:*)",
+      "Bash(npm i:*)",
+      "Bash(pip install:*)"
+    ]
+  }
+}
