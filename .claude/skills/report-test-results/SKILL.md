@@ -19,8 +19,10 @@ the comment reads the same on every run.
 | --- | --- |
 | the plan from `analyze-test-gaps` | the decision table: file, action, reason |
 | `.agent-tmp/verification.json` | pass or fail, test counts, abandoned files, out-of-scope edits |
-| `frontend/coverage/coverage-summary.json`, `backend/coverage/coverage.json` | coverage after |
-| `.agent-tmp/coverage-before/` | coverage before, when the workflow captured it |
+
+**Coverage is not yours to report.** The workflow appends a before-and-after
+table computed from the snapshots it took, so leave it out of your report
+rather than estimating or duplicating it.
 
 ## How to write it
 
@@ -29,8 +31,8 @@ the comment reads the same on every run.
 - **Show the decisions, including the skips.** A reviewer needs to see that a
   file was considered and deliberately left alone, with the reason. The skips are
   often the more interesting half.
-- **Give real numbers.** Test counts and coverage percentages come from the
-  runner and the coverage files, never from memory or estimation.
+- **Give real numbers.** Test counts come from the runner output, never from
+  memory or estimation.
 - **Say what went wrong.** An abandoned test, a defect found in the application
   code, an out-of-scope edit that was reverted — each one goes in the report
   plainly. A report that only ever says everything is fine teaches the reader to

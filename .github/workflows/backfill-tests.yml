@@ -140,6 +140,7 @@ jobs:
           body=.agent-tmp/pr-body.md
           {
             cat .agent-tmp/report.md 2>/dev/null || echo '### Unit test agent'
+            .github/scripts/coverage-delta.sh .agent-tmp
             echo
             echo "---"
             echo "Opened by the \`backfill-tests\` workflow. CI verifies these tests independently, in jobs that hold no model credentials."

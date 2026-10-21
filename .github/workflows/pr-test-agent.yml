@@ -343,6 +343,7 @@ jobs:
           set -euo pipefail
           report=.agent-tmp/report.md
           [ -f "$report" ] || printf '### Unit test agent\n\nThe agent produced no report.\n' > "$report"
+          .github/scripts/coverage-delta.sh .agent-tmp >> "$report"
           {
             echo
             echo "---"

@@ -21,13 +21,6 @@
 | frontend | `npm run test` | 24 passed in 16 files |
 | backend | `python -m pytest` | 31 passed |
 
-**Coverage**
-
-| Scope | Before | After |
-| --- | --- | --- |
-| frontend statements | 46.42% | 58.90% |
-| backend statements | 42% | 61% |
-
 **Skills used:** `analyze-test-gaps` → `write-frontend-tests`, `write-backend-tests` → `verify-tests` → `report-test-results`
 
 <details>
