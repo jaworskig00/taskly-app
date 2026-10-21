@@ -12,3 +12,6 @@ htmlcov/
 *.db-wal
 .env
 .DS_Store
+
+# Agent working directory (plans, reports, coverage snapshots)
+.agent-tmp/
