@@ -5,6 +5,10 @@ tools: Read, Grep, Glob, Write, Edit, Bash, Skill
 disallowedTools: WebFetch, WebSearch
 model: sonnet
 maxTurns: 40
+# The CI session is non-interactive: without this, every file edit waits for an
+# approval that will never come. Writes stay bounded by the deny rules in
+# .claude/settings.json and by the workflow's boundary check.
+permissionMode: acceptEdits
 color: green
 skills:
   - write-frontend-tests
