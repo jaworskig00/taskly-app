@@ -65,7 +65,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .agent-tmp/coverage-before
-          (cd frontend && npm run test:coverage) || true
+          (cd frontend && npm run test:coverage -- --coverage.reportOnFailure) || true
           (cd backend && python -m pytest --cov=app --cov-report=json -q) || true
           cp frontend/coverage/coverage-summary.json .agent-tmp/coverage-before/frontend.json 2>/dev/null || true
           cp backend/coverage/coverage.json .agent-tmp/coverage-before/backend.json 2>/dev/null || true
@@ -115,7 +115,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .agent-tmp/coverage-after
-          (cd frontend && npm run test:coverage) || true
+          (cd frontend && npm run test:coverage -- --coverage.reportOnFailure) || true
           (cd backend && python -m pytest --cov=app --cov-report=json -q) || true
           cp frontend/coverage/coverage-summary.json .agent-tmp/coverage-after/frontend.json 2>/dev/null || true
           cp backend/coverage/coverage.json .agent-tmp/coverage-after/backend.json 2>/dev/null || true
