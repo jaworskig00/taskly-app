@@ -39,6 +39,14 @@ class TodoRepository:
         self.session.refresh(record)
         return from_model(record)
 
+    def delete_completed(self) -> int:
+        statement = select(TodoRecord).where(TodoRecord.completed.is_(True))
+        records = list(self.session.scalars(statement))
+        for record in records:
+            self.session.delete(record)
+        self.session.commit()
+        return len(records)
+
     def delete(self, todo_id: int) -> bool:
         record = self.session.get(TodoRecord, todo_id)
         if record is None:
