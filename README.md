@@ -1,5 +1,15 @@
 # Taskly App
 
+The application code in this repository comes from
+[cf-recruitment/taskly-app](https://github.com/cf-recruitment/taskly-app) and is kept
+as the first commit, unchanged.
+
+Everything after that commit adds a **unit test agent**: a custom agent with reusable
+skills that reads a pull request, decides which changed code needs tests, writes them,
+runs them, and reports the result on the pull request. See
+[`SOLUTION.md`](SOLUTION.md) for how it is built and how to run it, and
+[`.claude/`](.claude) for the agent and skill definitions.
+
 ## Setup
 
 ```sh
