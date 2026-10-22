@@ -125,19 +125,20 @@ The agent's decisions, taken from its report:
 | `api/todos.ts` | updated `todos.test.ts` | `clearCompleted` sends the right request |
 | `api/queryKeys.ts` | **skipped** | constant declaration, excluded from coverage by `vite.config.ts` |
 
-Result: frontend 18 → 28 tests, backend 21 → 25, both suites green, typecheck and
+Result: frontend 18 → 27 tests, backend 21 → 24, both suites green, typecheck and
 Prettier clean, verified in a job without model credentials.
 
 | Scope | Before | After | Change |
 | --- | --- | --- | --- |
-| frontend statements | 42.47% | 51.61% | +9.14 |
+| frontend statements | 42.47% | 51.07% | +8.60 |
 | backend statements | 41.24% | 46.33% | +5.09 |
 
 Two details worth noting. The agent skipped a file and said why, which is the
 behaviour the triage skill is calibrated for — a pointless test is worse than a
-visible gap. And it reported that it had chosen a `.test.tsx` extension over the
-planned `.test.ts` because the test needs JSX, rather than silently diverging from
-its own plan.
+visible gap. And where it had to touch existing tests (the `TodosHeader` tests
+lacked the new required props, the page test needed a richer stub) it said so in
+the report and left the existing assertions unchanged, rather than quietly
+rewriting tests until they passed.
 
 ## Assumptions
 
