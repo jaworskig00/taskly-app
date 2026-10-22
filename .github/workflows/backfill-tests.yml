@@ -145,9 +145,18 @@ jobs:
             echo "---"
             echo "Opened by the \`backfill-tests\` workflow. CI verifies these tests independently, in jobs that hold no model credentials."
           } > "$body"
-          gh pr create --base main --head "$branch" \
+          # Repositories with "Allow GitHub Actions to create and approve pull
+          # requests" disabled reject this. The work is already pushed, so say
+          # where it is instead of failing the run.
+          if ! gh pr create --base main --head "$branch" \
             --title 'test: backfill unit tests for untested modules' \
-            --body-file "$body"
+            --body-file "$body"; then
+            {
+              echo "### Backfill"
+              echo
+              echo "Tests were written and pushed to \`$branch\`, but this repository does not allow GitHub Actions to open pull requests. Open one from that branch, or enable the setting in Settings → Actions → General."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
