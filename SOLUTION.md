@@ -62,7 +62,10 @@ Prerequisites:
    workflow picks whichever exists; the two paths are separate steps so neither
    receives an empty value meant for the other.
 2. Actions must be allowed to write: *Settings → Actions → General → Workflow
-   permissions → Read and write*.
+   permissions → Read and write*. For the backfill workflow to open its own
+   pull request, *Allow GitHub Actions to create and approve pull requests*
+   must be enabled in the same place; without it the branch is still pushed and
+   the pull request has to be opened by hand.
 3. Nothing else. No GitHub App, no self-hosted runner.
 
 Then open a pull request. The workflow runs on `opened`, `synchronize`,
@@ -139,6 +142,18 @@ visible gap. And where it had to touch existing tests (the `TodosHeader` tests
 lacked the new required props, the page test needed a richer stub) it said so in
 the report and left the existing assertions unchanged, rather than quietly
 rewriting tests until they passed.
+
+## Backfill result
+
+The same agent and skills, run from the Actions tab against code that was already
+untested, produced [#2](../../pull/2): tests for `lib/http.ts`, `utils/todos.ts`,
+`TodoEmptyState`, `config.py`, and deeper coverage of the repository and router.
+
+| Scope | Before any of this | On `main` now |
+| --- | --- | --- |
+| frontend statements | 46.42% | 64.51% |
+| backend statements | 42% | 78% |
+| backend tests | 21 | 42 |
 
 ## Assumptions
 
