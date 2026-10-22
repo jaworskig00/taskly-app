@@ -122,6 +122,7 @@ jobs:
     outputs:
       committed: ${{ steps.commit.outputs.committed }}
       head_sha: ${{ steps.commit.outputs.head_sha }}
+      agent_failed: ${{ (steps.agent_oauth.outcome == 'failure' || steps.agent_api.outcome == 'failure') && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -193,6 +194,8 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Run the test agent (subscription token)
+        id: agent_oauth
+        continue-on-error: true
         if: needs.guard.outputs.auth == 'oauth'
         uses: anthropics/claude-code-action@a5a423f75c251dcbff8a74e99f83b2cb03c72bfa # v1.0.256
         with:
@@ -202,6 +205,8 @@ jobs:
           prompt: ${{ steps.prompt.outputs.text }}
 
       - name: Run the test agent (api key)
+        id: agent_api
+        continue-on-error: true
         if: needs.guard.outputs.auth == 'api-key'
         uses: anthropics/claude-code-action@a5a423f75c251dcbff8a74e99f83b2cb03c72bfa # v1.0.256
         with:
@@ -283,7 +288,9 @@ jobs:
   verify:
     name: verify independently
     needs: [guard, agent]
-    if: always() && needs.agent.result == 'success'
+    # Runs even when the agent errored, so the pull request always gets an
+    # explanation rather than a bare red cross.
+    if: always() && needs.guard.outputs.run == 'true' && needs.agent.result != 'cancelled'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # No model credentials reach this job. It is the authoritative gate: the
@@ -299,6 +306,7 @@ jobs:
           persist-credentials: false
 
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
         with:
           name: test-agent-run
           path: .agent-tmp
@@ -337,11 +345,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           COMMITTED: ${{ needs.agent.outputs.committed }}
+          AGENT_FAILED: ${{ needs.agent.outputs.agent_failed }}
           SUITES_PASSED: ${{ steps.suites.outputs.passed }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
+          mkdir -p .agent-tmp
           report=.agent-tmp/report.md
+          if [ "$AGENT_FAILED" = "true" ]; then
+            printf '### Unit test agent\n\nThe agent run did not finish, so no tests were written on this commit. The suites below ran against the branch as it stands.\n' > "$report"
+          fi
           [ -f "$report" ] || printf '### Unit test agent\n\nThe agent produced no report.\n' > "$report"
           .github/scripts/coverage-delta.sh .agent-tmp >> "$report"
           {
