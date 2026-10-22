@@ -30,3 +30,12 @@ def test_create_trims_input_and_returns_created_task(client, repository_mock, to
 def test_invalid_create_never_calls_repository(client, repository_mock, payload):
     assert client.post("/api/todos", json=payload).status_code == 422
     repository_mock.create.assert_not_called()
+
+
+def test_clear_completed_returns_deleted_count_and_is_not_shadowed_by_todo_id(client, repository_mock):
+    repository_mock.delete_completed.return_value = 3
+    response = client.delete("/api/todos/completed")
+    assert response.status_code == 200
+    assert response.json() == {"deleted": 3}
+    repository_mock.delete_completed.assert_called_once_with()
+    repository_mock.delete.assert_not_called()
