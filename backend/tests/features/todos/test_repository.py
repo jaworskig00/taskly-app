@@ -24,3 +24,24 @@ def test_get_returns_none_for_missing_task():
     session.get.return_value = None
     assert TodoRepository(session).get(404) is None
     session.get.assert_called_once_with(TodoRecord, 404)
+
+
+def test_delete_completed_deletes_only_completed_tasks_and_returns_count(model_factory, todo_values):
+    session = Mock(spec=Session)
+    records = [model_factory({**todo_values, "id": 1, "completed": True}),
+               model_factory({**todo_values, "id": 2, "completed": True})]
+    session.scalars.return_value = records
+    assert TodoRepository(session).delete_completed() == 2
+    statement = session.scalars.call_args.args[0]
+    expected = select(TodoRecord).where(TodoRecord.completed.is_(True))
+    assert statement.compare(expected)
+    assert [call.args[0] for call in session.delete.call_args_list] == records
+    session.commit.assert_called_once_with()
+
+
+def test_delete_completed_returns_zero_when_nothing_is_completed():
+    session = Mock(spec=Session)
+    session.scalars.return_value = []
+    assert TodoRepository(session).delete_completed() == 0
+    session.delete.assert_not_called()
+    session.commit.assert_called_once_with()
