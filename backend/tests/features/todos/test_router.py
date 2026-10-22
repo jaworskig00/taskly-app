@@ -39,3 +39,55 @@ def test_clear_completed_returns_deleted_count_and_is_not_shadowed_by_todo_id(cl
     assert response.json() == {"deleted": 3}
     repository_mock.delete_completed.assert_called_once_with()
     repository_mock.delete.assert_not_called()
+
+
+def test_get_returns_task(client, repository_mock, todo):
+    repository_mock.get.return_value = todo
+    response = client.get("/api/todos/7")
+    assert response.status_code == 200
+    assert response.json() == todo.model_dump(mode="json")
+    repository_mock.get.assert_called_once_with(7)
+
+
+def test_get_missing_task_returns_404(client, repository_mock):
+    repository_mock.get.return_value = None
+    response = client.get("/api/todos/7")
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Task not found."}
+
+
+def test_update_passes_patch_to_repository(client, repository_mock, todo):
+    from app.features.todos.schemas import TodoUpdate
+
+    repository_mock.update.return_value = todo
+    response = client.patch("/api/todos/7", json={"completed": True})
+    assert response.status_code == 200
+    assert response.json() == todo.model_dump(mode="json")
+    repository_mock.update.assert_called_once_with(7, TodoUpdate(completed=True))
+
+
+def test_update_missing_task_returns_404(client, repository_mock):
+    repository_mock.update.return_value = None
+    response = client.patch("/api/todos/7", json={"completed": True})
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Task not found."}
+
+
+def test_delete_returns_204_without_body(client, repository_mock):
+    repository_mock.delete.return_value = True
+    response = client.delete("/api/todos/7")
+    assert response.status_code == 204
+    assert response.content == b""
+    repository_mock.delete.assert_called_once_with(7)
+
+
+def test_delete_missing_task_returns_404(client, repository_mock):
+    repository_mock.delete.return_value = False
+    assert client.delete("/api/todos/7").status_code == 404
+
+
+@pytest.mark.parametrize("method", ["get", "patch", "delete"])
+def test_non_positive_id_is_rejected_before_repository(client, repository_mock, method):
+    kwargs = {"json": {"completed": True}} if method == "patch" else {}
+    assert getattr(client, method)("/api/todos/0", **kwargs).status_code == 422
+    assert repository_mock.method_calls == []

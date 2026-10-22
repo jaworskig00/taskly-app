@@ -45,3 +45,57 @@ def test_delete_completed_returns_zero_when_nothing_is_completed():
     assert TodoRepository(session).delete_completed() == 0
     session.delete.assert_not_called()
     session.commit.assert_called_once_with()
+
+
+def test_create_persists_record_with_matching_timestamps_and_returns_task(todo_values):
+    from app.features.todos.schemas import TodoCreate
+
+    session = Mock(spec=Session)
+    session.refresh.side_effect = lambda record: setattr(record, "id", 5)
+    created = TodoRepository(session).create(TodoCreate(title="Write", priority="low"))
+    record = session.add.call_args.args[0]
+    assert (record.title, record.priority) == ("Write", "low")
+    assert record.created_at == record.updated_at
+    session.commit.assert_called_once_with()
+    session.refresh.assert_called_once_with(record)
+    assert created.id == 5
+
+
+def test_update_returns_none_for_missing_task_without_committing():
+    from app.features.todos.schemas import TodoUpdate
+
+    session = Mock(spec=Session)
+    session.get.return_value = None
+    assert TodoRepository(session).update(1, TodoUpdate(title="x")) is None
+    session.commit.assert_not_called()
+
+
+def test_update_applies_only_provided_fields_and_bumps_updated_at(model_factory, todo_values):
+    from app.features.todos.schemas import TodoUpdate
+
+    session = Mock(spec=Session)
+    record = model_factory(todo_values)
+    session.get.return_value = record
+    result = TodoRepository(session).update(7, TodoUpdate(completed=True))
+    assert record.completed is True
+    assert record.title == todo_values["title"]
+    assert record.updated_at > todo_values["updated_at"]
+    assert result.completed is True
+    session.commit.assert_called_once_with()
+
+
+def test_delete_removes_existing_task(model_factory, todo_values):
+    session = Mock(spec=Session)
+    record = model_factory(todo_values)
+    session.get.return_value = record
+    assert TodoRepository(session).delete(7) is True
+    session.delete.assert_called_once_with(record)
+    session.commit.assert_called_once_with()
+
+
+def test_delete_returns_false_for_missing_task():
+    session = Mock(spec=Session)
+    session.get.return_value = None
+    assert TodoRepository(session).delete(7) is False
+    session.delete.assert_not_called()
+    session.commit.assert_not_called()
